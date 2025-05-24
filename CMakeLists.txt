@@ -7,6 +7,7 @@ add_executable(manpass main.cpp
         src/Controller.cpp
         src/Cryptography.cpp
         src/Storage.cpp
+        src/Parser.cpp
 )
 
 target_include_directories(manpass PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
