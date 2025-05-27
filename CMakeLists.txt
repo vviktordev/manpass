@@ -8,6 +8,10 @@ add_executable(manpass main.cpp
         src/Cryptography.cpp
         src/Storage.cpp
         src/Parser.cpp
+        src/vault/Vault.cpp
+        src/vault/Folder.cpp
+        src/vault/CredentialEntry.cpp
+        src/vault/NoteEntry.cpp
 )
 
 target_include_directories(manpass PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
