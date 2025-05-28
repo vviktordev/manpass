@@ -8,7 +8,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(manpass_tests
-        testoftest.cpp
+        manpass_tests.cpp
 )
 
 target_link_libraries(manpass_tests
