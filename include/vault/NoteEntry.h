@@ -10,11 +10,12 @@
 
 namespace vault {
 
+// Reperesents a simple note entry
 class NoteEntry : public Entry {
 public:
     NoteEntry(const std::string& noteText);
 
-    std::string getType() const override;
+    EntryType getType() const override;
     const std::string& getNoteText() const;
 private:
     std::string noteText;

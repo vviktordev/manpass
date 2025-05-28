@@ -9,16 +9,45 @@ namespace vault {
 
     Folder::Folder(const std::string& fnm) : folderName(fnm) {}
 
-    void Folder::addEntry(std::unique_ptr<Entry> entry) {
-        entries.push_back(std::move(entry));
+    void Folder::addEntry(std::unique_ptr<Entry> entry, const std::string& entryName) {
+        if (entryExists(entryName)) {
+            throw std::runtime_error("Entry with name " + entryName + " already exists in folder " + folderName);
+        }
+        entries[entryName] = std::move(entry);
     }
 
-    const std::vector<std::unique_ptr<Entry>>& Folder::getEntries() const {
-        return entries;
+    Entry* Folder::getEntry(const std::string& entryName) {
+        auto it = entries.find(entryName);
+        return it != entries.end() ? it->second.get() : nullptr;
+    }
+
+    const Entry* Folder::getEntry(const std::string& entryName) const {
+        auto it = entries.find(entryName);
+        return it != entries.end() ? it->second.get() : nullptr;
+    }
+
+    std::vector<const Entry*> Folder::getAllEntries() const {
+        std::vector<const Entry*> result;
+        for (const auto& [name, entry] : entries) {
+            result.push_back(entry.get());
+        }
+        return result;
+    }
+
+    std::vector<std::string> Folder::getEntryNames() const {
+        std::vector<std::string> names;
+        for (const auto& [name, entry] : entries) {
+            names.push_back(name);
+        }
+        return names;
     }
 
     const std::string& Folder::getName() const {
         return folderName;
+    }
+
+    bool Folder::entryExists(const std::string& entryName) const {
+        return entries.find(entryName) != entries.end();
     }
 
     Folder::Folder(Folder && other) noexcept :

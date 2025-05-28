@@ -9,24 +9,37 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <unordered_map>
+#include <stdexcept>
 #include "Entry.h"
 
 namespace vault {
 
 class Folder {
 public:
-    Folder(const std::string& folderName);
+    explicit Folder(const std::string& folderName);
 
+    // Adds an entry to the folder by name (throws if entry already exists)
     // Entries are uniquely owned by a Folder, so we use unique_ptr
-    void addEntry(std::unique_ptr<Entry> entry);
-    const std::vector<std::unique_ptr<Entry>>& getEntries() const;
-    const std::string& getName() const;
+    void addEntry(std::unique_ptr<Entry> entry, const std::string& entryName);
 
-    // Explicitly delete copy constructor and copy assignment - prevents accidental copying of non-copyable resources
+    // Retrieves an entry by name (mutable and immutable versions)
+    Entry* getEntry(const std::string& entryName);
+    const Entry* getEntry(const std::string& entryName) const;
+
+    std::vector<const Entry*> getAllEntries() const; // Gets all entry pointers
+    std::vector<std::string> getEntryNames() const; // Gets names of all entries
+
+    const std::string& getName() const; // Return folder name
+
+    // Helper to check if entry exists
+    bool entryExists(const std::string& entryName) const;
+
+    // Explicit disallowance of copy operations and allowance for moving operations is required due to unique_ptr use
+    // Delete copy operations
     Folder(const Folder&) = delete;
     Folder& operator=(const Folder&) = delete;
-
-    // Allow move construction and assignment
+    // Enable move operations
     Folder(Folder&&) noexcept;
     Folder& operator=(Folder&&) noexcept;
 
@@ -35,7 +48,7 @@ private:
 
     // We use unique_ptr to enforce exclusive ownership of each entry by the folder.
     // It also helps store entries of different kinds and improves memory management.
-    std::vector<std::unique_ptr<Entry>> entries;
+    std::unordered_map<std::string, std::unique_ptr<Entry>> entries; // Map of entry name to Entry object
 };
 
 } // vault

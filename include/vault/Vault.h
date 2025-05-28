@@ -7,32 +7,50 @@
 #define VAULT_H
 
 #include <string>
+#include <memory>
+#include <unordered_map>
+#include <vector>
+#include <stdexcept>
 #include "Folder.h"
+#include "Entry.h"
 
 namespace vault {
 
 class Vault {
 public:
-    Vault(const std::string& vaultName, const std::string& masterPasswordHash);
+    explicit Vault(const std::string& vaultName);
 
-    bool unlock(std::string& inputPasswordHash) const;
-
+    // Adds a folder to the vault (throws if folder already exists)
     // Accept folder by rvalue reference to enable moving (since copying is not allowed)
     void addFolder(std::unique_ptr<Folder> folderName);
-    const std::vector<std::unique_ptr<Folder>>& getFolders() const;
 
-    // Explicitly delete copy constructor and copy assignment - prevents accidental copying of non-copyable resources
+    // Retrieves a folder by name (mutable and immutable versions)
+    Folder* getFolder(const std::string& folderName);
+    const Folder* getFolder(const std::string& folderName) const;
+
+    // Retrieves a specific entry by folder and entry name (mutable and immutable versions)
+    Entry* getEntry(const std::string& folderName, const std::string& entryName);
+    const Entry* getEntry(const std::string& folderName, const std::string& entryName) const;
+
+    std::vector<const Folder*> getAllFolders() const; // Gets all folder pointers
+    std::vector<std::string> getFolderNames() const; // Gets names of all folders
+
+    const std::string& getName() const; // Returns vault name
+
+    // Helper to check if folder exists
+    bool folderExists(const std::string& folderName) const;
+
+    // Explicit disallowance of copy operations and allowance for moving operations is required due to unique_ptr use
+    // Disable copy operations to enforce unique ownership
     Vault(const Vault&) = delete;
     Vault& operator=(const Vault&) = delete;
-
-    // Allow move construction and assignment
+    // Enable move operations
     Vault(Vault&&) noexcept;
     Vault& operator=(Vault&&) noexcept;
 
 private:
-    std::string vaultName;
-    std::string masterPasswordHash;
-    std::vector<std::unique_ptr<Folder>> folders;
+    std::string vaultName; // Name of the vault
+    std::unordered_map<std::string, std::unique_ptr<Folder>> folders; // Map of folder name to Folder objects
 
 };
 

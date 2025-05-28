@@ -9,8 +9,8 @@ namespace vault {
 
     CredentialEntry::CredentialEntry(const std::string& usr, const std::string& pwd) : username(usr), password(pwd) {}
 
-    std::string CredentialEntry::getType() const {
-        return "credential";
+    EntryType CredentialEntry::getType() const {
+        return EntryType::CREDENTIAL;
     }
 
     const std::string& CredentialEntry::getUsername() const {

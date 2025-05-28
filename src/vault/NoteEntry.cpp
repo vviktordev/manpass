@@ -9,8 +9,8 @@ namespace vault {
 
     NoteEntry::NoteEntry(const std::string &note) : noteText(note) {}
 
-    std::string NoteEntry::getType() const {
-        return "note";
+    EntryType NoteEntry::getType() const {
+        return EntryType::NOTE;
     }
 
     const std::string &NoteEntry::getNoteText() const {

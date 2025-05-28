@@ -10,11 +10,12 @@
 
 namespace vault {
 
+// Represents a credential entry with username and password
 class CredentialEntry : public Entry {
 public:
     CredentialEntry(const std::string& username, const std::string& password);
 
-    std::string getType() const override;
+    EntryType getType() const override;
     const std::string& getUsername() const;
     const std::string& getPassword() const;
 

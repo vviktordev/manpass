@@ -15,3 +15,5 @@ add_executable(manpass main.cpp
 )
 
 target_include_directories(manpass PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_subdirectory(GoogleTests)
