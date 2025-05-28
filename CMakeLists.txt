@@ -7,7 +7,7 @@ add_executable(manpass main.cpp
         src/Controller.cpp
         src/Cryptography.cpp
         src/Storage.cpp
-        src/Parser.cpp
+        src/parser/Parser.cpp
         src/vault/Vault.cpp
         src/vault/Folder.cpp
         src/vault/CredentialEntry.cpp
