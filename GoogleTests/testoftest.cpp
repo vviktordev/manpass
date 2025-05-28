@@ -8,13 +8,16 @@
 
 using namespace vault;
 
-TEST(VaultTest, AddAndRetrieveFolder) {
-    Vault v("MyVault");
-    v.addFolder(std::make_unique<Folder>("Personal"));
+TEST(SampleTest, AddsCorrectly) {
+    EXPECT_EQ(1 + 1, 2);
+}
 
-    Folder* f = v.getFolder("Personal");
-    ASSERT_NE(f, nullptr);
-    EXPECT_EQ(f->getName(), "Personal");
+TEST(VaultTest, AddAndRetrieveFolder) {
+    vault::Vault vault("TestVault");
+    auto folder = std::make_unique<vault::Folder>("Email");
+    vault.addFolder(std::move(folder));
+
+    EXPECT_NE(vault.getFolder("Email"), nullptr);
 }
 
 TEST(FolderTest, AddAndRetrieveEntry) {

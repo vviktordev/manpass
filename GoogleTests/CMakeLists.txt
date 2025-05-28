@@ -1,12 +1,20 @@
-# 'Google_test' is the subproject name
-project(GoogleTests)
+include(FetchContent)
 
-# 'lib' is the folder with Google Test sources
-add_subdirectory(lib)
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
+add_executable(manpass_tests
+        testoftest.cpp
+)
 
-# 'Google_Tests_run' is the target name
-# 'test1.cpp test2.cpp' are source files with tests
-add_executable(GoogleTests testoftest.cpp)
-target_link_libraries(GoogleTests gtest gtest_main)
+target_link_libraries(manpass_tests
+        GTest::gtest_main
+        manpass_core
+)
+
+include(GoogleTest)
+gtest_discover_tests(manpass_tests)
