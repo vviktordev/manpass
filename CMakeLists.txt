@@ -20,6 +20,7 @@ add_library(manpass_core
         src/vault/Vault.cpp
         src/vault/Folder.cpp
         src/vault/CredentialEntry.cpp
+        src/vault/NoteEntry.cpp
 )
 
 target_include_directories(manpass_core PUBLIC include)

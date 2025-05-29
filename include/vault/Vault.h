@@ -21,16 +21,15 @@ public:
     explicit Vault(const std::string& vaultName);
 
     // Adds a folder to the vault (throws if folder already exists)
-    // Accept folder by rvalue reference to enable moving (since copying is not allowed)
     void addFolder(std::unique_ptr<Folder> folderName);
 
     // Retrieves a folder by name (mutable and immutable versions)
-    Folder* getFolder(const std::string& folderName);
-    const Folder* getFolder(const std::string& folderName) const;
+    Folder& getFolder(const std::string& folderName);
+    const Folder& getFolder(const std::string& folderName) const;
 
     // Retrieves a specific entry by folder and entry name (mutable and immutable versions)
-    Entry* getEntry(const std::string& folderName, const std::string& entryName);
-    const Entry* getEntry(const std::string& folderName, const std::string& entryName) const;
+    Entry& getEntry(const std::string& folderName, const std::string& entryName);
+    const Entry& getEntry(const std::string& folderName, const std::string& entryName) const;
 
     std::vector<const Folder*> getAllFolders() const; // Gets all folder pointers
     std::vector<std::string> getFolderNames() const; // Gets names of all folders

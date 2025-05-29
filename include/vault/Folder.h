@@ -24,8 +24,8 @@ public:
     void addEntry(std::unique_ptr<Entry> entry, const std::string& entryName);
 
     // Retrieves an entry by name (mutable and immutable versions)
-    Entry* getEntry(const std::string& entryName);
-    const Entry* getEntry(const std::string& entryName) const;
+    Entry& getEntry(const std::string& entryName);
+    const Entry& getEntry(const std::string& entryName) const;
 
     std::vector<const Entry*> getAllEntries() const; // Gets all entry pointers
     std::vector<std::string> getEntryNames() const; // Gets names of all entries

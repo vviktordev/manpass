@@ -18,24 +18,28 @@ namespace vault {
         folders[name] = std::move(folder);
     }
 
-    Folder* Vault::getFolder(const std::string& folderName) {
+    Folder& Vault::getFolder(const std::string& folderName) {
         auto it = folders.find(folderName);
-        return it != folders.end() ? it->second.get() : nullptr;
+        if (it == folders.end()) {
+            throw std::out_of_range("Folder with name " + folderName + " does not exist in vault " + vaultName);
+        }
+        return *it->second; // This is safe because we checked for existence above
     }
 
-    const Folder* Vault::getFolder(const std::string& folderName) const {
+    const Folder& Vault::getFolder(const std::string& folderName) const {
         auto it = folders.find(folderName);
-        return it != folders.end() ? it->second.get() : nullptr;
+        if (it == folders.end()) {
+            throw std::out_of_range("Folder with name " + folderName + " does not exist in vault " + vaultName);
+        }
+        return *it->second; // This is safe because we checked for existence above
     }
 
-    Entry* Vault::getEntry(const std::string& folderName, const std::string& entryName) {
-        Folder* folder = getFolder(folderName);
-        return folder ? folder->getEntry(entryName) : nullptr;
+    Entry& Vault::getEntry(const std::string& folderName, const std::string& entryName) {
+        return getFolder(folderName).getEntry(entryName); // reusing already written code in Folder.cpp
     }
 
-    const Entry* Vault::getEntry(const std::string& folderName, const std::string& entryName) const {
-        const Folder* folder = getFolder(folderName);
-        return folder ? folder->getEntry(entryName) : nullptr;
+    const Entry& Vault::getEntry(const std::string& folderName, const std::string& entryName) const {
+        return getFolder(folderName).getEntry(entryName); // reusing already written code in Folder.cpp
     }
 
     std::vector<const Folder*> Vault::getAllFolders() const {

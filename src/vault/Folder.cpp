@@ -16,14 +16,20 @@ namespace vault {
         entries[entryName] = std::move(entry);
     }
 
-    Entry* Folder::getEntry(const std::string& entryName) {
+    Entry& Folder::getEntry(const std::string& entryName) {
         auto it = entries.find(entryName);
-        return it != entries.end() ? it->second.get() : nullptr;
+        if (it == entries.end()) {
+            throw std::out_of_range("Entry with name " + entryName + " does not exist in folder " + folderName);
+        }
+        return *it->second.get(); // This is safe because we checked for existence above
     }
 
-    const Entry* Folder::getEntry(const std::string& entryName) const {
+    const Entry& Folder::getEntry(const std::string& entryName) const {
         auto it = entries.find(entryName);
-        return it != entries.end() ? it->second.get() : nullptr;
+        if (it == entries.end()) {
+            throw std::out_of_range("Entry with name " + entryName + " does not exist in folder " + folderName);
+        }
+        return *it->second.get(); // This is safe because we checked for existence above
     }
 
     std::vector<const Entry*> Folder::getAllEntries() const {
