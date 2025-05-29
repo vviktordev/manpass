@@ -6,13 +6,18 @@
 #include "../include/vault/Folder.h"
 #include "../include/vault/CredentialEntry.h"
 #include "../include/vault/NoteEntry.h"
+#include "../include/json/json.hpp"
 
+using json = nlohmann::json;
 using namespace vault;
 
+// Dummy test case
 TEST(SampleTest, AddsCorrectly) {
     EXPECT_EQ(1 + 1, 2);
 }
 
+
+// Test cases for different operations on the vault and it's structures
 TEST(VaultTest, AddAndRetrieveFolder) {
     Vault vault("MyVault");
     std::unique_ptr<Folder> folder = std::make_unique<Folder>("Logins");
@@ -107,4 +112,148 @@ TEST(VaultTest, MoveVaultMaintainsData) {
     original.addFolder(std::make_unique<Folder>("Data"));
     Vault moved = std::move(original);
     EXPECT_TRUE(moved.folderExists("Data"));
+}
+
+// -----------------------------------------------------------------------------------------
+// JSON serialization and deserialization tests
+
+// ---------- CREDENTIAL ENTRY TESTS ----------
+
+TEST(CredentialEntryTest, SerializeDeserialize) {
+    CredentialEntry original("user123", "pass456");
+
+    json j = original;
+    EXPECT_EQ(j["type"], "CREDENTIAL");
+    EXPECT_EQ(j["username"], "user123");
+    EXPECT_EQ(j["password"], "pass456");
+
+    std::unique_ptr<Entry> parsed = parseEntry(j);
+    auto* cred = dynamic_cast<CredentialEntry*>(parsed.get());
+    ASSERT_NE(cred, nullptr);
+
+    EXPECT_EQ(cred->getUsername(), "user123");
+    EXPECT_EQ(cred->getPassword(), "pass456");
+}
+
+TEST(CredentialEntryTest, HandlesEmptyFields) {
+    CredentialEntry entry("", "");
+    json j = entry;
+
+    auto parsed = parseEntry(j);
+    auto* cred = dynamic_cast<CredentialEntry*>(parsed.get());
+
+    ASSERT_NE(cred, nullptr);
+    EXPECT_EQ(cred->getUsername(), "");
+    EXPECT_EQ(cred->getPassword(), "");
+}
+
+TEST(CredentialEntryTest, HandlesSpecialCharacters) {
+    CredentialEntry entry("usérñámè", "päßwörd😊");
+    json j = entry;
+
+    auto parsed = parseEntry(j);
+    auto* cred = dynamic_cast<CredentialEntry*>(parsed.get());
+
+    ASSERT_NE(cred, nullptr);
+    EXPECT_EQ(cred->getUsername(), "usérñámè");
+    EXPECT_EQ(cred->getPassword(), "päßwörd😊");
+}
+
+TEST(CredentialEntryTest, MissingFieldsThrows) {
+    json j = {
+        {"type", "CREDENTIAL"},
+        {"username", "admin"}
+        // password is missing
+    };
+
+    EXPECT_THROW(parseEntry(j), std::invalid_argument);
+}
+
+TEST(CredentialEntryTest, ExtraFieldsIgnored) {
+    json j = {
+        {"type", "CREDENTIAL"},
+        {"username", "user"},
+        {"password", "1234"},
+        {"extra", "ignored"}
+    };
+
+    auto parsed = parseEntry(j);
+    auto* cred = dynamic_cast<CredentialEntry*>(parsed.get());
+
+    ASSERT_NE(cred, nullptr);
+    EXPECT_EQ(cred->getUsername(), "user");
+    EXPECT_EQ(cred->getPassword(), "1234");
+}
+
+// ---------- NOTE ENTRY TESTS ----------
+
+TEST(NoteEntryTest, SerializeDeserialize) {
+    NoteEntry original("Secret note!");
+
+    json j = original;
+    EXPECT_EQ(j["type"], "NOTE");
+    EXPECT_EQ(j["text"], "Secret note!");
+
+    std::unique_ptr<Entry> parsed = parseEntry(j);
+    auto* note = dynamic_cast<NoteEntry*>(parsed.get());
+    ASSERT_NE(note, nullptr);
+
+    EXPECT_EQ(note->getNoteText(), "Secret note!");
+}
+
+TEST(NoteEntryTest, HandlesEmptyNote) {
+    NoteEntry entry("");
+    json j = entry;
+
+    auto parsed = parseEntry(j);
+    auto* note = dynamic_cast<NoteEntry*>(parsed.get());
+
+    ASSERT_NE(note, nullptr);
+    EXPECT_EQ(note->getNoteText(), "");
+}
+
+TEST(NoteEntryTest, HandlesMultiLineNote) {
+    std::string multiline = "Line 1\nLine 2\n\tIndented";
+    NoteEntry entry(multiline);
+    json j = entry;
+
+    auto parsed = parseEntry(j);
+    auto* note = dynamic_cast<NoteEntry*>(parsed.get());
+
+    ASSERT_NE(note, nullptr);
+    EXPECT_EQ(note->getNoteText(), multiline);
+}
+
+TEST(NoteEntryTest, InvalidFieldTypeThrows) {
+    json j = {
+        {"type", "NOTE"},
+        {"note", 12345}  // Should be string
+    };
+
+    EXPECT_THROW(parseEntry(j), std::invalid_argument);
+}
+
+TEST(NoteEntryTest, ExtraFieldIgnored) {
+    json j = {
+        {"type", "NOTE"},
+        {"text", "some note"},
+        {"unexpected", "field"}
+    };
+
+    auto parsed = parseEntry(j);
+    auto* note = dynamic_cast<NoteEntry*>(parsed.get());
+
+    ASSERT_NE(note, nullptr);
+    EXPECT_EQ(note->getNoteText(), "some note");
+}
+
+// ---------- UNKNOWN TYPE ----------
+
+TEST(ParseEntryTest, UnknownTypeThrows) {
+    json j = {
+        {"type", "UNKNOWN"},
+        {"data", "irrelevant"}
+    };
+
+    EXPECT_THROW(parseEntry(j), std::invalid_argument);
 }

@@ -47,11 +47,16 @@ public:
     Vault(Vault&&) noexcept;
     Vault& operator=(Vault&&) noexcept;
 
+    friend void to_json(json& j, const Vault& vault);
+
 private:
     std::string vaultName; // Name of the vault
     std::unordered_map<std::string, std::unique_ptr<Folder>> folders; // Map of folder name to Folder objects
 
 };
+
+void from_json(const json& j, Vault& vault);
+
 
 } // vault
 

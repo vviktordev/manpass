@@ -7,6 +7,9 @@
 #define VAULT_ENTRY_H
 
 #include <string>
+#include <json/json.hpp>
+
+using json = nlohmann::json;
 
 namespace vault {
 
@@ -21,7 +24,13 @@ class Entry {
 public:
     virtual ~Entry() = default;
     virtual EntryType getType() const = 0; // Must be implemented by derived classes
+
+    friend void to_json(json& j, const Entry& entry);
+
 };
+
+std::unique_ptr<Entry> parseEntry(const json &j);
+
 
 } // vault
 

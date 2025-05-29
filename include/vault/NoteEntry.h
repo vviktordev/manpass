@@ -7,6 +7,9 @@
 #define VAULT_NOTEENTRY_H
 
 #include "Entry.h"
+#include "json/json.hpp"
+
+using json = nlohmann::json;
 
 namespace vault {
 
@@ -17,9 +20,14 @@ public:
 
     EntryType getType() const override;
     const std::string& getNoteText() const;
+
+    friend void to_json(json& j, const NoteEntry& entry);
+
 private:
     std::string noteText;
 };
+
+void from_json(const json& j, NoteEntry& entry);
 
 } // vault
 

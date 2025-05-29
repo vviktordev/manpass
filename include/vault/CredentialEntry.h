@@ -7,6 +7,9 @@
 #define VAULT_CREDENTIALENTRY_H
 
 #include "Entry.h"
+#include "json/json.hpp"
+
+using json = nlohmann::json;
 
 namespace vault {
 
@@ -19,10 +22,14 @@ public:
     const std::string& getUsername() const;
     const std::string& getPassword() const;
 
+    friend void to_json(json& j, const CredentialEntry& entry);
+
 private:
     std::string username;
     std::string password;
 };
+
+void from_json(const json& j, CredentialEntry& entry);
 
 } // vault
 

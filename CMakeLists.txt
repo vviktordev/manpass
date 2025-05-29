@@ -12,6 +12,8 @@ add_executable(manpass main.cpp
         src/vault/Folder.cpp
         src/vault/CredentialEntry.cpp
         src/vault/NoteEntry.cpp
+        src/json/json_serialization.cpp
+        src/json/json_deserialization.cpp
 )
 
 target_include_directories(manpass PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -21,6 +23,8 @@ add_library(manpass_core
         src/vault/Folder.cpp
         src/vault/CredentialEntry.cpp
         src/vault/NoteEntry.cpp
+        src/json/json_serialization.cpp
+        src/json/json_deserialization.cpp
 )
 
 target_include_directories(manpass_core PUBLIC include)

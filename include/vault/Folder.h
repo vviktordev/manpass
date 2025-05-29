@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include "Entry.h"
 
+using json = nlohmann::json;
+
 namespace vault {
 
 class Folder {
@@ -43,6 +45,8 @@ public:
     Folder(Folder&&) noexcept;
     Folder& operator=(Folder&&) noexcept;
 
+    friend void to_json(json& j, const Folder& folder);
+
 private:
     std::string folderName;
 
@@ -50,6 +54,9 @@ private:
     // It also helps store entries of different kinds and improves memory management.
     std::unordered_map<std::string, std::unique_ptr<Entry>> entries; // Map of entry name to Entry object
 };
+
+void from_json(const json& j, Folder& folder);
+
 
 } // vault
 
