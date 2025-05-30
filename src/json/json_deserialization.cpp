@@ -54,16 +54,34 @@ std::unique_ptr<Entry> parseEntry(const json& j) {
 
 // deserialize Folder
 void from_json(const json& j, Folder& folder) {
+    if (!j.contains("name") || !j["name"].is_string())
+        throw std::invalid_argument("Folder name is missing or is not a string");
+    if (!j.contains("entries") || !j["entries"].is_array())
+        throw std::invalid_argument("Folder entries is missing or is not an array");
+
     folder = Folder{j["name"]};
+
     for (const auto& entry : j["entries"]) {
+        if (!entry.contains("name") || !entry["name"].is_string())
+            throw std::invalid_argument("Entry name is missing or is not a string");
+
         folder.addEntry(parseEntry(entry), entry["name"]);
     }
 }
 
 // deserialize Vault
 void from_json(const json& j, Vault& vault) {
+    if (!j.contains("name") || !j["name"].is_string())
+        throw std::invalid_argument("Vault name is missing or is not a string");
+    if (!j.contains("folders") || !j["folders"].is_array())
+        throw std::invalid_argument("Vault folders is missing or is not an array");
+
     vault = Vault(j["name"]);
+
     for (const auto& folder_json : j["folders"]) {
+        if (!folder_json.contains("name") || !folder_json["name"].is_string())
+            throw std::invalid_argument("Folder name is missing or is not a string");
+
         auto folder = std::make_unique<Folder>("");
         from_json(folder_json, *folder);
         vault.addFolder(std::move(folder));

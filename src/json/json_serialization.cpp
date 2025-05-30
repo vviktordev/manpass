@@ -46,7 +46,9 @@ void to_json(json& j, const Folder& folder) {
     j["name"] = folder.folderName;
     j["entries"] = json::array();
     for (const auto& [name, entry] : folder.entries) {
-        j["entries"].push_back(*entry);
+        json entryJson = *entry;
+        entryJson["name"] = name;
+        j["entries"].push_back(entryJson);
     }
 }
 
@@ -55,7 +57,9 @@ void to_json(json& j, const Vault& vault) {
     j["name"] = vault.vaultName;
     j["folders"] = json::array();
     for (const auto& [name, folder] : vault.folders) {
-        j["folders"].push_back(*folder);
+        json folderJson = *folder;
+        folderJson["name"] = name;
+        j["folders"].push_back(folderJson);
     }
 }
 

@@ -257,3 +257,264 @@ TEST(ParseEntryTest, UnknownTypeThrows) {
 
     EXPECT_THROW(parseEntry(j), std::invalid_argument);
 }
+
+// ---------- FOLDER TESTS ----------
+
+TEST(FolderTest, SerializeDeserializeSingleEntry) {
+    Folder folder("My Folder");
+    folder.addEntry(std::make_unique<CredentialEntry>("user", "pass"), "login1");
+
+    json j = folder;
+    EXPECT_EQ(j["name"], "My Folder");
+    ASSERT_EQ(j["entries"].size(), 1);
+
+    // Search for the entry with name "login1"
+    const json* loginEntry = nullptr;
+    for (const auto& entry : j["entries"]) {
+        if (entry.contains("name") && entry["name"] == "login1") {
+            loginEntry = &entry;
+            break;
+        }
+    }
+
+    ASSERT_NE(loginEntry, nullptr);
+    EXPECT_EQ((*loginEntry)["type"], "CREDENTIAL");
+
+    // Now deserialize and check correctness
+    Folder deserialized("");
+    from_json(j, deserialized);
+    EXPECT_EQ(deserialized.getName(), "My Folder");
+
+    ASSERT_TRUE(deserialized.entryExists("login1"));
+    auto& entry = deserialized.getEntry("login1");
+    auto* cred = dynamic_cast<CredentialEntry*>(&entry);
+    ASSERT_NE(cred, nullptr);
+    EXPECT_EQ(cred->getUsername(), "user");
+    EXPECT_EQ(cred->getPassword(), "pass");
+}
+
+
+TEST(FolderTest, HandlesEmptyFolder) {
+    Folder folder("Empty");
+    json j = folder;
+
+    EXPECT_EQ(j["name"], "Empty");
+    EXPECT_TRUE(j["entries"].empty());
+
+    Folder deserialized("");
+    from_json(j, deserialized);
+    EXPECT_EQ(deserialized.getName(), "Empty");
+    EXPECT_TRUE(deserialized.getEntryNames().empty());
+}
+
+TEST(FolderTest, MixedEntriesSerializeDeserialize) {
+    Folder folder("Mixed");
+    folder.addEntry(std::make_unique<CredentialEntry>("alice", "a123"), "entry1");
+    folder.addEntry(std::make_unique<NoteEntry>("Buy milk"), "entry2");
+
+    json j = folder;
+    ASSERT_EQ(j["entries"].size(), 2);
+
+    Folder deserialized("");
+    from_json(j, deserialized);
+
+    ASSERT_TRUE(deserialized.entryExists("entry1"));
+    ASSERT_TRUE(deserialized.entryExists("entry2"));
+
+    auto* cred = dynamic_cast<CredentialEntry*>(&deserialized.getEntry("entry1"));
+    ASSERT_NE(cred, nullptr);
+    EXPECT_EQ(cred->getUsername(), "alice");
+
+    auto* note = dynamic_cast<NoteEntry*>(&deserialized.getEntry("entry2"));
+    ASSERT_NE(note, nullptr);
+    EXPECT_EQ(note->getNoteText(), "Buy milk");
+}
+
+TEST(FolderDeserializationTest, MissingNameThrows) {
+    json j = {
+        {"entries", json::array()}
+    };
+
+    Folder folder("");
+    EXPECT_THROW(from_json(j, folder), std::invalid_argument);
+}
+
+TEST(FolderDeserializationTest, NameWrongTypeThrows) {
+    json j = {
+        {"name", 123},  // name should be a string
+        {"entries", json::array()}
+    };
+
+    Folder folder("");
+    EXPECT_THROW(from_json(j, folder), std::invalid_argument);
+}
+
+TEST(FolderDeserializationTest, MissingEntriesThrows) {
+    json j = {
+        {"name", "Test Folder"}
+    };
+
+    Folder folder("");
+    EXPECT_THROW(from_json(j, folder), std::invalid_argument);
+}
+
+TEST(FolderDeserializationTest, EntriesWrongTypeThrows) {
+    json j = {
+        {"name", "Test Folder"},
+        {"entries", "not an array"}
+    };
+
+    Folder folder("");
+    EXPECT_THROW(from_json(j, folder), std::invalid_argument);
+}
+
+TEST(FolderDeserializationTest, EntryMissingNameThrows) {
+    json j = {
+        {"name", "Folder"},
+        {"entries", {{
+            {"type", "NOTE"},
+            {"text", "abc"}
+        }}}
+    };
+
+    Folder folder("");
+    EXPECT_THROW(from_json(j, folder), std::invalid_argument);
+}
+
+TEST(FolderDeserializationTest, ValidMinimalFolderDeserializes) {
+    json j = {
+        {"name", "My Folder"},
+        {"entries", json::array()}
+    };
+
+    Folder folder("");
+    EXPECT_NO_THROW(from_json(j, folder));
+    EXPECT_EQ(folder.getName(), "My Folder");
+    EXPECT_TRUE(folder.getEntryNames().empty());
+}
+
+
+// --------- VAULT TESTS -----------
+
+TEST(VaultTest, SerializeDeserializeSingleFolder) {
+    Vault vault("MainVault");
+
+    auto folder = std::make_unique<Folder>("Logins");
+    folder->addEntry(std::make_unique<CredentialEntry>("admin", "root"), "adminAccount");
+    vault.addFolder(std::move(folder));
+
+    json j = vault;
+    EXPECT_EQ(j["name"], "MainVault");
+    ASSERT_EQ(j["folders"].size(), 1);
+
+    Vault deserialized("");
+    from_json(j, deserialized);
+    EXPECT_EQ(deserialized.getName(), "MainVault");
+
+    ASSERT_TRUE(deserialized.folderExists("Logins"));
+    const auto& folderRef = deserialized.getFolder("Logins");
+
+    ASSERT_TRUE(folderRef.entryExists("adminAccount"));
+    const auto& entry = folderRef.getEntry("adminAccount");
+    auto* cred = dynamic_cast<const CredentialEntry*>(&entry);
+    ASSERT_NE(cred, nullptr);
+    EXPECT_EQ(cred->getUsername(), "admin");
+    EXPECT_EQ(cred->getPassword(), "root");
+}
+
+TEST(VaultTest, HandlesEmptyVault) {
+    Vault vault("EmptyVault");
+    json j = vault;
+
+    EXPECT_EQ(j["name"], "EmptyVault");
+    EXPECT_TRUE(j["folders"].empty());
+
+    Vault deserialized("");
+    from_json(j, deserialized);
+    EXPECT_EQ(deserialized.getName(), "EmptyVault");
+    EXPECT_TRUE(deserialized.getFolderNames().empty());
+}
+
+TEST(VaultTest, MultipleFoldersAndEntriesSerializeDeserialize) {
+    Vault vault("TestVault");
+
+    auto accounts = std::make_unique<Folder>("Accounts");
+    accounts->addEntry(std::make_unique<CredentialEntry>("alice", "a123"), "alice");
+    accounts->addEntry(std::make_unique<CredentialEntry>("bob", "b456"), "bob");
+
+    auto notes = std::make_unique<Folder>("Notes");
+    notes->addEntry(std::make_unique<NoteEntry>("Call Alice"), "reminder");
+
+    vault.addFolder(std::move(accounts));
+    vault.addFolder(std::move(notes));
+
+    json j = vault;
+
+    Vault deserialized("");
+    from_json(j, deserialized);
+
+    ASSERT_TRUE(deserialized.folderExists("Accounts"));
+    ASSERT_TRUE(deserialized.folderExists("Notes"));
+
+    const auto& accFolder = deserialized.getFolder("Accounts");
+    ASSERT_TRUE(accFolder.entryExists("alice"));
+    ASSERT_TRUE(accFolder.entryExists("bob"));
+
+    const auto& notesFolder = deserialized.getFolder("Notes");
+    ASSERT_TRUE(notesFolder.entryExists("reminder"));
+
+    const auto& note = notesFolder.getEntry("reminder");
+    auto* noteEntry = dynamic_cast<const NoteEntry*>(&note);
+    ASSERT_NE(noteEntry, nullptr);
+    EXPECT_EQ(noteEntry->getNoteText(), "Call Alice");
+}
+
+TEST(VaultDeserializationTest, MissingNameThrows) {
+    json j = {
+        {"folders", json::array()}
+    };
+
+    Vault vault("placeholder");
+    EXPECT_THROW(from_json(j, vault), std::invalid_argument);
+}
+
+TEST(VaultDeserializationTest, NameWrongTypeThrows) {
+    json j = {
+        {"name", true},
+        {"folders", json::array()}
+    };
+
+    Vault vault("placeholder");
+    EXPECT_THROW(from_json(j, vault), std::invalid_argument);
+}
+
+TEST(VaultDeserializationTest, MissingFoldersThrows) {
+    json j = {
+        {"name", "Vault"}
+    };
+
+    Vault vault("placeholder");
+    EXPECT_THROW(from_json(j, vault), std::invalid_argument);
+}
+
+TEST(VaultDeserializationTest, FoldersWrongTypeThrows) {
+    json j = {
+        {"name", "Vault"},
+        {"folders", "not an array"}
+    };
+
+    Vault vault("placeholder");
+    EXPECT_THROW(from_json(j, vault), std::invalid_argument);
+}
+
+TEST(VaultDeserializationTest, ValidEmptyVaultDeserializes) {
+    json j = {
+        {"name", "My Vault"},
+        {"folders", json::array()}
+    };
+
+    Vault vault("placeholder");
+    EXPECT_NO_THROW(from_json(j, vault));
+    EXPECT_EQ(vault.getName(), "My Vault");
+    EXPECT_TRUE(vault.getFolderNames().empty());
+}
