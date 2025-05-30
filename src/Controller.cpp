@@ -4,7 +4,7 @@
 
 #include "Controller.h"
 
-#include "Cryptography.h"
+#include "../include/crypto/Cryptography.h"
 #include "Storage.h"
 
 Controller::Controller(int parserResults, Cryptography* cryptoModule, Storage* storageModule) :

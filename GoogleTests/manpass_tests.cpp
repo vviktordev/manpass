@@ -7,9 +7,14 @@
 #include "../include/vault/CredentialEntry.h"
 #include "../include/vault/NoteEntry.h"
 #include "../include/json/json.hpp"
+#include "../include/crypto/EncryptedBlob.h"
+#include "../include/crypto/Cryptography.h"
+#include "../include/Storage.h"
 
 using json = nlohmann::json;
 using namespace vault;
+using namespace cryptography;
+using namespace storage;
 
 // Dummy test case
 TEST(SampleTest, AddsCorrectly) {
@@ -517,4 +522,107 @@ TEST(VaultDeserializationTest, ValidEmptyVaultDeserializes) {
     EXPECT_NO_THROW(from_json(j, vault));
     EXPECT_EQ(vault.getName(), "My Vault");
     EXPECT_TRUE(vault.getFolderNames().empty());
+}
+
+// PoC Cryptography Test
+TEST(CryptoTest, EncryptDecryptVault) {
+    vault::Vault original("My Vault");
+    auto folder = std::make_unique<vault::Folder>("Passwords");
+    folder->addEntry(std::make_unique<vault::CredentialEntry>("admin", "secret"), "admin login");
+    original.addFolder(std::move(folder));
+
+    std::string password = "my_secure_password";
+    EncryptedBlob blob = encryptVault(original, password);
+    vault::Vault decrypted = decryptVault(blob, password);
+
+    EXPECT_EQ(decrypted.getName(), "My Vault");
+    auto& entry = decrypted.getEntry("Passwords", "admin login");
+    auto* cred = dynamic_cast<vault::CredentialEntry*>(&entry);
+    ASSERT_NE(cred, nullptr);
+    EXPECT_EQ(cred->getUsername(), "admin");
+    EXPECT_EQ(cred->getPassword(), "secret");
+}
+
+// Storage tests
+
+static std::filesystem::path makeTempDir() {
+    auto dir = std::filesystem::temp_directory_path() / "manpass_test_vaults";
+    std::filesystem::remove_all(dir);
+    return dir;
+}
+
+TEST(StorageTest, SaveCreatesFile) {
+    auto tempDir = makeTempDir();
+    Storage storage(tempDir);
+    std::string password = "testpass";
+
+    Vault vault("TestVault");
+    auto folder = std::make_unique<Folder>("Logins");
+    folder->addEntry(std::make_unique<CredentialEntry>("user","pass"), "login1");
+    vault.addFolder(std::move(folder));
+
+    storage.saveVault(vault, password);
+    auto filePath = tempDir / "TestVault.json";
+    EXPECT_TRUE(std::filesystem::exists(filePath));
+
+    std::ifstream ifs(filePath);
+    ASSERT_TRUE(ifs.good());
+    json j; ifs >> j;
+    EXPECT_EQ(j["Algorithm"].get<std::string>(), "AES-256/GCM");
+    EXPECT_EQ(j["KDF"].get<std::string>(), "PBKDF2(SHA-256)");
+    EXPECT_TRUE(j.contains("Salt"));
+    EXPECT_TRUE(j.contains("Data"));
+}
+
+TEST(StorageTest, LoadNonexistentThrows) {
+    auto tempDir = makeTempDir();
+    Storage storage(tempDir);
+    std::string password = "testpass";
+    EXPECT_THROW(storage.loadVault("NoSuchVault", password), std::runtime_error);
+}
+
+TEST(StorageTest, SaveAndLoadRoundTrip) {
+    auto tempDir = makeTempDir();
+    Storage storage(tempDir);
+    std::string password = "testpass";
+
+    Vault vault("MyVault");
+    auto folder = std::make_unique<Folder>("FolderA");
+    folder->addEntry(std::make_unique<NoteEntry>("note content"), "note1");
+    vault.addFolder(std::move(folder));
+
+    storage.saveVault(vault, password);
+    Vault loaded = storage.loadVault("MyVault", password);
+
+    EXPECT_EQ(loaded.getName(), "MyVault");
+    ASSERT_TRUE(loaded.folderExists("FolderA"));
+    Folder& f = loaded.getFolder("FolderA");
+    ASSERT_TRUE(f.entryExists("note1"));
+    auto& e = f.getEntry("note1");
+    auto* note = dynamic_cast<NoteEntry*>(&e);
+    ASSERT_NE(note, nullptr);
+    EXPECT_EQ(note->getNoteText(), "note content");
+}
+
+TEST(StorageTest, CorruptedJsonThrows) {
+    auto tempDir = makeTempDir();
+    Storage storage(tempDir);
+    std::string password = "testpass";
+
+    auto filePath = tempDir / "BadVault.json";
+    std::ofstream ofs(filePath);
+    ofs << "{ invalid json }";
+    ofs.close();
+    EXPECT_THROW(storage.loadVault("BadVault", password), std::exception);
+}
+
+TEST(StorageTest, WrongPasswordThrows) {
+    auto tempDir = makeTempDir();
+    Storage storage(tempDir);
+    std::string password = "correct";
+
+    Vault vault("SecVault");
+    vault.addFolder(std::make_unique<Folder>("F"));
+    storage.saveVault(vault, password);
+    EXPECT_THROW(storage.loadVault("SecVault", "wrongpass"), std::exception);
 }

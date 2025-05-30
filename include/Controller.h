@@ -6,8 +6,12 @@
 #define CONTROLLER_H
 
 #include <iostream>
-#include "Cryptography.h"
+#include "crypto/Cryptography.h"
 #include "Storage.h"
+
+using namespace vault;
+using namespace cryptography;
+using namespace storage;
 
 class Controller {
 public:
