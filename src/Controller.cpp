@@ -7,8 +7,7 @@
 #include "../include/crypto/Cryptography.h"
 #include "Storage.h"
 
-Controller::Controller(int parserResults, Cryptography* cryptoModule, Storage* storageModule) :
+Controller::Controller(int parserResults, Storage* storageModule) :
     parserResults{parserResults},
-    cryptoModule{cryptoModule},
     storageModule{storageModule}
 {};

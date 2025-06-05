@@ -19,14 +19,24 @@ namespace storage {
 
     void Storage::saveVault(const vault::Vault& vault, const std::string& masterPassword) const {
         // Encrypt vault data
-        cryptography::EncryptedBlob blob = cryptography::encryptVault(vault, masterPassword);
+        json serializedVault = vault;
+        cryptography::EncryptedBlob blob = cryptography::encrypt(
+            serializedVault.dump(),
+            masterPassword,
+            vault.cryptoAlgorithm,
+            vault.cryptoKDF,
+            vault.cryptoBase64Salt,
+            vault.cryptoKDFIterations
+        );
 
         // Build JSON wrapper
         json j;
-        j["Algorithm"] = blob.algorithm;
-        j["KDF"]       = blob.kdf;
-        j["Salt"]      = blob.salt;
-        j["Data"]      = blob.data;
+        j["Algorithm"]     = blob.algorithm;
+        j["KDF"]           = blob.kdf;
+        j["KDFIterations"] = blob.kdfIterations;
+        j["Salt"]          = blob.base64Salt;
+        j["Nonce"]         = blob.base64Nonce;
+        j["Data"]          = blob.base64Ciphertext;
 
         // Write to file
         std::filesystem::path filePath = vaultsDir / (vault.getName() + ".json");
@@ -50,11 +60,24 @@ namespace storage {
         cryptography::EncryptedBlob blob;
         blob.algorithm = j["Algorithm"].get<std::string>();
         blob.kdf = j["KDF"].get<std::string>();
-        blob.salt = j["Salt"].get<std::string>();
-        blob.data = j["Data"].get<std::string>();
+        blob.kdfIterations = j["KDFIterations"].get<int>();
+        blob.base64Salt = j["Salt"].get<std::string>();
+        blob.base64Nonce = j["Nonce"].get<std::string>();
+        blob.base64Ciphertext = j["Data"].get<std::string>();
 
         // Decrypt and return
-        return cryptography::decryptVault(blob, masterPassword);
+        std::string stringSerializedVault = cryptography::decrypt(blob, masterPassword);
+        json serializedVault = json::parse(stringSerializedVault);
+
+        vault::Vault vault("");
+        from_json(serializedVault, vault);
+
+        vault.cryptoAlgorithm = blob.algorithm;
+        vault.cryptoKDF = blob.kdf;
+        vault.cryptoKDFIterations = blob.kdfIterations;
+        vault.cryptoBase64Salt = blob.base64Salt;
+
+        return vault;
     }
 
 

@@ -2,6 +2,11 @@
 // Created by wiktor on 5/19/25.
 //
 
+/*
+The Cryptography module provides the baseline needed for supporting multiple encryption algorithms and KDFs.
+Right now it only supports AES-256/GCM and PBKDF-2(AES-256), thus many things (which shouldn't be) are currently hard-coded.
+*/
+
 #ifndef CRYPTOGRAPHY_H
 #define CRYPTOGRAPHY_H
 
@@ -21,15 +26,26 @@
 #include "json/json.hpp"
 #include "EncryptedBlob.h"
 
-using json = nlohmann::json;
-
 namespace cryptography {
+    const std::vector<std::string> acceptedAlgorithms({"AES-256/GCM"});
+    const std::vector<std::string> acceptedKDFs({"PBKDF2(SHA-256)"});
 
-    class Cryptography {};
+    std::string generateBase64Salt(size_t saltLengthBytes = 16);
 
-    EncryptedBlob encryptVault(const vault::Vault& vault, const std::string& masterPassword);
-    vault::Vault decryptVault(const EncryptedBlob& encryptedVault, const std::string& masterPassword);
+    EncryptedBlob encrypt(
+        const std::string& plaintext,
+        const std::string& masterPassword,
+        const std::string& algo,
+        const std::string& kdf,
+        const std::string& base64Salt,
+        int kdfIterations = 500000
+    );
 
+    // Throws Botan::Invalid_Authentication_Tag on decryption failure
+    std::string decrypt(
+        EncryptedBlob encrypted,
+        const std::string& masterPassword
+    );
 } // namespace cryptography
 
 #endif //CRYPTOGRAPHY_H

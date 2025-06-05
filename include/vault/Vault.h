@@ -18,6 +18,12 @@ namespace vault {
 
 class Vault {
 public:
+    // Metadata required for encrypting the vault
+    std::string cryptoAlgorithm;
+    std::string cryptoKDF;
+    int cryptoKDFIterations;
+    std::string cryptoBase64Salt;
+
     explicit Vault(const std::string& vaultName);
 
     // Adds a folder to the vault (throws if folder already exists)

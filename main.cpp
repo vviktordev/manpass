@@ -1,6 +1,6 @@
 #include <iostream>
-#include "parser/Parser.h"
-#include "include/json/json.hpp"
+#include "json/json.hpp"
+#include "crypto/Cryptography.h"
 
 using json = nlohmann::json;
 

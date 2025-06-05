@@ -5,9 +5,17 @@
 // Directory: src/vault/Vault.cpp
 #include "vault/Vault.h"
 
+#include "crypto/Cryptography.h"
+
 namespace vault {
 
-    Vault::Vault(const std::string& vnm) : vaultName(vnm) {}
+    Vault::Vault(const std::string& vnm) : vaultName(vnm) {
+        // Default crypto parameters
+        this->cryptoAlgorithm = "AES-256/GCM";
+        this->cryptoKDF = "PBKDF2(SHA-256)";
+        this->cryptoKDFIterations = 500000;
+        this->cryptoBase64Salt = cryptography::generateBase64Salt(); // Generate a new salt by default (can be overwritten)
+    }
 
 
     void Vault::addFolder(std::unique_ptr<Folder> folder) {

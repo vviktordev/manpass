@@ -15,12 +15,11 @@ using namespace storage;
 
 class Controller {
 public:
-    Controller(int parserResults, Cryptography* cryptoModule, Storage* storageModule);
+    Controller(int parserResults, Storage* storageModule);
     void run();
 
 private:
     int parserResults;
-    Cryptography* cryptoModule;
     Storage* storageModule;
     std::string masterPassword;
 };

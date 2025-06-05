@@ -13,8 +13,10 @@ namespace cryptography {
     struct EncryptedBlob {
         std::string algorithm;
         std::string kdf;
-        std::string salt;   // base64 encoded
-        std::string data;   // base64 encoded encrypted vault blob
+        int kdfIterations;
+        std::string base64Salt;
+        std::string base64Nonce;
+        std::string base64Ciphertext;
     };
 
 } // namespace cryptography

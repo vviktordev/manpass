@@ -524,23 +524,66 @@ TEST(VaultDeserializationTest, ValidEmptyVaultDeserializes) {
     EXPECT_TRUE(vault.getFolderNames().empty());
 }
 
-// PoC Cryptography Test
+// Cryptography Tests
+
 TEST(CryptoTest, EncryptDecryptVault) {
-    vault::Vault original("My Vault");
-    auto folder = std::make_unique<vault::Folder>("Passwords");
-    folder->addEntry(std::make_unique<vault::CredentialEntry>("admin", "secret"), "admin login");
+    std::string algo = "AES-256/GCM";
+    std::string kdf = "PBKDF2(SHA-256)";
+    int kdfIters = 100;
+    std::string salt = "irXIESN9HIWI6dnKTEXb7A==";
+
+    Vault original("My Vault");
+    auto folder = std::make_unique<Folder>("Passwords");
+    folder->addEntry(std::make_unique<CredentialEntry>("admin", "secret"), "admin login");
     original.addFolder(std::move(folder));
 
     std::string password = "my_secure_password";
-    EncryptedBlob blob = encryptVault(original, password);
-    vault::Vault decrypted = decryptVault(blob, password);
+    json serializedOriginal = original;
+    EncryptedBlob blob = encrypt(serializedOriginal.dump(), password, algo, kdf, salt, kdfIters);
+
+    std::string stringDecryptedSerialized = decrypt(blob, password);
+    json decryptedSerialized = json::parse(stringDecryptedSerialized);
+    Vault decrypted("");
+    from_json(decryptedSerialized, decrypted);
 
     EXPECT_EQ(decrypted.getName(), "My Vault");
     auto& entry = decrypted.getEntry("Passwords", "admin login");
-    auto* cred = dynamic_cast<vault::CredentialEntry*>(&entry);
+    auto* cred = dynamic_cast<CredentialEntry*>(&entry);
     ASSERT_NE(cred, nullptr);
     EXPECT_EQ(cred->getUsername(), "admin");
     EXPECT_EQ(cred->getPassword(), "secret");
+}
+
+TEST(CryptoTest, EncryptDecryptUnsupportedAlgorithmsThrows) {
+    EncryptedBlob blob;
+    blob.base64Ciphertext = "a";
+    blob.base64Nonce = "n";
+    blob.base64Salt = "s";
+    blob.kdfIterations = 100;
+
+    EXPECT_THROW(encrypt("a", "p", "Unsupported algo", "PBKDF2(SHA-256)", "s"), std::invalid_argument);
+    EXPECT_THROW(encrypt("a", "p", "AES-256/GCM", "Unsupported KDF", "s"), std::invalid_argument);
+
+    blob.algorithm = "Unsupported algo";
+    blob.kdf = "PBKDF2(SHA-256)";
+    EXPECT_THROW(decrypt(blob, "p"), std::invalid_argument);
+
+    blob.algorithm = "SHA-256/GCM";
+    blob.kdf = "Unsupported KDF";
+    EXPECT_THROW(decrypt(blob, "p"), std::invalid_argument);
+}
+
+TEST(CryptoTest, DecryptArbitratyString) {
+    EncryptedBlob blob;
+    blob.algorithm = "AES-256/GCM";
+    blob.kdf = "PBKDF2(SHA-256)";
+    blob.kdfIterations = 100;
+    blob.base64Ciphertext = "c0HFoNrKiAdHp2gtwuK/RGgSwHdeJpkLU7iLq+k/";
+    blob.base64Salt = "irXIESN9HIWI6dnKTEXb7A==";
+    blob.base64Nonce = "5tEeVtHNUueAYLq5";
+
+    std::string encrypted = decrypt(blob, "password");
+    EXPECT_EQ(encrypted, "Test plaintext");
 }
 
 // Storage tests
@@ -570,7 +613,9 @@ TEST(StorageTest, SaveCreatesFile) {
     json j; ifs >> j;
     EXPECT_EQ(j["Algorithm"].get<std::string>(), "AES-256/GCM");
     EXPECT_EQ(j["KDF"].get<std::string>(), "PBKDF2(SHA-256)");
+    EXPECT_EQ(j["KDFIterations"].get<int>(), 500000);
     EXPECT_TRUE(j.contains("Salt"));
+    EXPECT_TRUE(j.contains("Nonce"));
     EXPECT_TRUE(j.contains("Data"));
 }
 
