@@ -4,8 +4,6 @@
 
 #include "Storage.h"
 
-#include <unistd.h>
-
 namespace storage {
 
     Storage::Storage(const std::filesystem::path& directory) : vaultsDir(directory) {
@@ -80,5 +78,55 @@ namespace storage {
         return vault;
     }
 
+    fs::path getDefaultVaultsDirectory() {
+        fs::path dataDir;
 
+    #ifdef _WIN32
+        // Try LOCALAPPDATA
+        char* localAppDataPath = nullptr;
+        size_t len;
+        errno_t err = _dupenv_s(&localAppDataPath, &len, "LOCALAPPDATA");
+
+        if (err == 0 && localAppDataPath != nullptr) {
+            dataDir = fs::path(localAppDataPath);
+            free(localAppDataPath); // Important to free memory allocated by _dupenv_s
+        } else {
+            char appDataPathWin[MAX_PATH];
+            if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appDataPathWin))) {
+                 dataDir = fs::path(appDataPathWin);
+            } else {
+                throw std::runtime_error("Could not determine AppData directory on Windows.");
+            }
+        }
+        if (dataDir.empty()) {
+             throw std::runtime_error("Could not determine a valid data directory on Windows.");
+        }
+
+    #elif defined(__APPLE__)
+        const char* homeDir = getenv("HOME");
+        if (homeDir) {
+            dataDir = fs::path(homeDir) / "Library" / "Application Support";
+        } else {
+            throw std::runtime_error("Could not determine HOME directory on macOS.");
+        }
+    #else // Assuming Linux/other Unix-like
+        const char* xdgDataHome = getenv("XDG_DATA_HOME");
+        if (xdgDataHome && xdgDataHome[0] != '\0') {
+            dataDir = fs::path(xdgDataHome);
+        } else {
+            const char* homeDir = getenv("HOME");
+            if (homeDir) {
+                dataDir = fs::path(homeDir) / ".local" / "share";
+            } else {
+                throw std::runtime_error("Could not determine XDG_DATA_HOME or HOME directory on Linux.");
+            }
+        }
+    #endif
+
+        if (dataDir.empty()) {
+            throw std::runtime_error("Failed to determine a default application data directory.");
+        }
+
+        return dataDir / "manpass" / "vaults";
+    }
 } // namespace storage

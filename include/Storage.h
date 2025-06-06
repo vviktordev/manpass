@@ -12,6 +12,16 @@
 #include <vault/Vault.h>
 #include <crypto/Cryptography.h>
 #include <json/json.hpp>
+#include <unistd.h>
+#include <cstdlib> // For getenv
+#include <stdexcept> // For runtime_error
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h> // For SHGetFolderPath (safer than env vars for some special folders)
+#endif
+
+namespace fs = std::filesystem;
 
 using json = nlohmann::json;
 
@@ -34,6 +44,8 @@ public:
 private:
     std::filesystem::path vaultsDir; // Directory where vault files are stored
 };
+
+fs::path getDefaultVaultsDirectory();
 
 } // namespace storage
 
