@@ -48,6 +48,8 @@ add_executable(manpass
         src/vault/NoteEntry.cpp
         src/json/json_serialization.cpp
         src/json/json_deserialization.cpp
+        src/crypto/GetMasterPassword.cpp
+        include/crypto/GetMasterPassword.h
 )
 
 target_include_directories(manpass PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
