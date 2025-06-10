@@ -13,7 +13,7 @@ namespace cryptography {
 
     EncryptedBlob encrypt(
         const std::string &plaintext,
-        const std::string &masterPassword,
+        Botan::secure_vector<char> masterPassword,
         const std::string &algo,
         const std::string &kdf,
         const std::string &base64Salt,
@@ -47,7 +47,7 @@ namespace cryptography {
 
         const size_t keyLength = 32;
         Botan::secure_vector<uint8_t> key(keyLength);
-        pbkdf->derive_key(key.data(), keyLength, masterPassword.c_str(), masterPassword.size(), salt.data(), salt.size());
+        pbkdf->derive_key(key.data(), keyLength, masterPassword.data(), masterPassword.size(), salt.data(), salt.size());
 
         // Encrypt
         const auto enc = Botan::Cipher_Mode::create(algo, Botan::Cipher_Dir::Encryption);
@@ -73,7 +73,7 @@ namespace cryptography {
 
     std::string decrypt(
         EncryptedBlob encrypted,
-        const std::string& masterPassword
+        Botan::secure_vector<char> masterPassword
     ) {
         // Validate algorithm and KDF
         if (std::find(acceptedAlgorithms.begin(), acceptedAlgorithms.end(), encrypted.algorithm) == acceptedAlgorithms.end()) {
@@ -100,7 +100,7 @@ namespace cryptography {
 
         const size_t keyLength = 32;
         Botan::secure_vector<uint8_t> key(keyLength);
-        pbkdf->derive_key(key.data(), keyLength, masterPassword.c_str(), masterPassword.size(), salt.data(), salt.size());
+        pbkdf->derive_key(key.data(), keyLength, masterPassword.data(), masterPassword.size(), salt.data(), salt.size());
 
         // Decrypt
         const auto dec = Botan::Cipher_Mode::create(encrypted.algorithm, Botan::Cipher_Dir::Decryption);

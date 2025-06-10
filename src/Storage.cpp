@@ -4,6 +4,8 @@
 
 #include "Storage.h"
 
+#include <utility>
+
 namespace storage {
 
     Storage::Storage(const std::filesystem::path& directory) : vaultsDir(directory) {
@@ -15,12 +17,12 @@ namespace storage {
         }
     }
 
-    void Storage::saveVault(const vault::Vault& vault, const std::string& masterPassword) const {
+    void Storage::saveVault(const vault::Vault& vault, Botan::secure_vector<char> masterPassword) const {
         // Encrypt vault data
         json serializedVault = vault;
         cryptography::EncryptedBlob blob = cryptography::encrypt(
             serializedVault.dump(),
-            masterPassword,
+            std::move(masterPassword),
             vault.cryptoAlgorithm,
             vault.cryptoKDF,
             vault.cryptoBase64Salt,
@@ -44,7 +46,7 @@ namespace storage {
         ofs << j.dump(4);
     }
 
-    vault::Vault Storage::loadVault(const std::string &vaultName, const std::string &masterPassword) const {
+    vault::Vault Storage::loadVault(const std::string &vaultName, Botan::secure_vector<char> masterPassword) const {
         // Read file
         std::filesystem::path filePath = vaultsDir / (vaultName + ".json");
         std::ifstream ifs(filePath);
@@ -64,7 +66,7 @@ namespace storage {
         blob.base64Ciphertext = j["Data"].get<std::string>();
 
         // Decrypt and return
-        std::string stringSerializedVault = cryptography::decrypt(blob, masterPassword);
+        std::string stringSerializedVault = cryptography::decrypt(blob, std::move(masterPassword));
         json serializedVault = json::parse(stringSerializedVault);
 
         vault::Vault vault("");

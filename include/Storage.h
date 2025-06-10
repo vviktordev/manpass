@@ -35,11 +35,11 @@ public:
 
     // Saves the given vault to a JSON file encrypted with masterPassword
     // Throws on I/O or encryption errors
-    void saveVault(const vault::Vault& vault, const std::string& masterPassword) const;
+    void saveVault(const vault::Vault& vault, Botan::secure_vector<char> masterPassword) const;
 
     // Loads and decrypts the vault with the given name using masterPassword
     // Throws on I/O, JSON parse, or decryption errors
-    vault::Vault loadVault(const std::string& vaultName, const std::string& masterPassword) const;
+    vault::Vault loadVault(const std::string& vaultName, Botan::secure_vector<char> masterPassword) const;
 
 private:
     std::filesystem::path vaultsDir; // Directory where vault files are stored

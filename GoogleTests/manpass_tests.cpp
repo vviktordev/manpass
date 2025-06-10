@@ -10,6 +10,7 @@
 #include "../include/crypto/EncryptedBlob.h"
 #include "../include/crypto/Cryptography.h"
 #include "../include/Storage.h"
+#include "../include/crypto/GetMasterPassword.h"
 
 using json = nlohmann::json;
 using namespace vault;
@@ -537,7 +538,8 @@ TEST(CryptoTest, EncryptDecryptVault) {
     folder->addEntry(std::make_unique<CredentialEntry>("admin", "secret"), "admin login");
     original.addFolder(std::move(folder));
 
-    std::string password = "my_secure_password";
+    std::string password_str = "my_secure_password";
+    Botan::secure_vector<char> password(password_str.begin(), password_str.end());
     json serializedOriginal = original;
     EncryptedBlob blob = encrypt(serializedOriginal.dump(), password, algo, kdf, salt, kdfIters);
 
@@ -561,19 +563,19 @@ TEST(CryptoTest, EncryptDecryptUnsupportedAlgorithmsThrows) {
     blob.base64Salt = "s";
     blob.kdfIterations = 100;
 
-    EXPECT_THROW(encrypt("a", "p", "Unsupported algo", "PBKDF2(SHA-256)", "s"), std::invalid_argument);
-    EXPECT_THROW(encrypt("a", "p", "AES-256/GCM", "Unsupported KDF", "s"), std::invalid_argument);
+    EXPECT_THROW(encrypt("a", {'p'}, "Unsupported algo", "PBKDF2(SHA-256)", "s"), std::invalid_argument);
+    EXPECT_THROW(encrypt("a", {'p'}, "AES-256/GCM", "Unsupported KDF", "s"), std::invalid_argument);
 
     blob.algorithm = "Unsupported algo";
     blob.kdf = "PBKDF2(SHA-256)";
-    EXPECT_THROW(decrypt(blob, "p"), std::invalid_argument);
+    EXPECT_THROW(decrypt(blob, {'p'}), std::invalid_argument);
 
     blob.algorithm = "SHA-256/GCM";
     blob.kdf = "Unsupported KDF";
-    EXPECT_THROW(decrypt(blob, "p"), std::invalid_argument);
+    EXPECT_THROW(decrypt(blob, {'p'}), std::invalid_argument);
 }
 
-TEST(CryptoTest, DecryptArbitratyString) {
+TEST(CryptoTest, DecryptArbitratyStringAndGetPasswordFromSTDIN) {
     EncryptedBlob blob;
     blob.algorithm = "AES-256/GCM";
     blob.kdf = "PBKDF2(SHA-256)";
@@ -582,7 +584,10 @@ TEST(CryptoTest, DecryptArbitratyString) {
     blob.base64Salt = "irXIESN9HIWI6dnKTEXb7A==";
     blob.base64Nonce = "5tEeVtHNUueAYLq5";
 
-    std::string encrypted = decrypt(blob, "password");
+    std::string password_str = "password";
+    Botan::secure_vector<char> password(password_str.begin(), password_str.end());
+
+    std::string encrypted = decrypt(blob, password);
     EXPECT_EQ(encrypted, "Test plaintext");
 }
 
@@ -597,7 +602,8 @@ static std::filesystem::path makeTempDir() {
 TEST(StorageTest, SaveCreatesFile) {
     auto tempDir = makeTempDir();
     Storage storage(tempDir);
-    std::string password = "testpass";
+    std::string password_str = "testpass";
+    Botan::secure_vector<char> password(password_str.begin(), password_str.end());
 
     Vault vault("TestVault");
     auto folder = std::make_unique<Folder>("Logins");
@@ -622,14 +628,16 @@ TEST(StorageTest, SaveCreatesFile) {
 TEST(StorageTest, LoadNonexistentThrows) {
     auto tempDir = makeTempDir();
     Storage storage(tempDir);
-    std::string password = "testpass";
+    std::string password_str = "testpass";
+    Botan::secure_vector<char> password(password_str.begin(), password_str.end());
     EXPECT_THROW(storage.loadVault("NoSuchVault", password), std::runtime_error);
 }
 
 TEST(StorageTest, SaveAndLoadRoundTrip) {
     auto tempDir = makeTempDir();
     Storage storage(tempDir);
-    std::string password = "testpass";
+    std::string password_str = "testpass";
+    Botan::secure_vector<char> password(password_str.begin(), password_str.end());
 
     Vault vault("MyVault");
     auto folder = std::make_unique<Folder>("FolderA");
@@ -652,7 +660,8 @@ TEST(StorageTest, SaveAndLoadRoundTrip) {
 TEST(StorageTest, CorruptedJsonThrows) {
     auto tempDir = makeTempDir();
     Storage storage(tempDir);
-    std::string password = "testpass";
+    std::string password_str = "testpass";
+    Botan::secure_vector<char> password(password_str.begin(), password_str.end());
 
     auto filePath = tempDir / "BadVault.json";
     std::ofstream ofs(filePath);
@@ -664,10 +673,14 @@ TEST(StorageTest, CorruptedJsonThrows) {
 TEST(StorageTest, WrongPasswordThrows) {
     auto tempDir = makeTempDir();
     Storage storage(tempDir);
-    std::string password = "correct";
+    std::string password_str = "correct";
+    Botan::secure_vector<char> password(password_str.begin(), password_str.end());
 
     Vault vault("SecVault");
     vault.addFolder(std::make_unique<Folder>("F"));
     storage.saveVault(vault, password);
-    EXPECT_THROW(storage.loadVault("SecVault", "wrongpass"), std::exception);
+
+    std::string wrong_pass_str = "wrongpass";
+    Botan::secure_vector<char> password_wrong(wrong_pass_str.begin(), wrong_pass_str.end());
+    EXPECT_THROW(storage.loadVault("SecVault", password_wrong), std::exception);
 }

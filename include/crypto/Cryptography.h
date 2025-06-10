@@ -34,7 +34,7 @@ namespace cryptography {
 
     EncryptedBlob encrypt(
         const std::string& plaintext,
-        const std::string& masterPassword,
+        Botan::secure_vector<char> masterPassword,
         const std::string& algo,
         const std::string& kdf,
         const std::string& base64Salt,
@@ -44,7 +44,7 @@ namespace cryptography {
     // Throws Botan::Invalid_Authentication_Tag on decryption failure
     std::string decrypt(
         EncryptedBlob encrypted,
-        const std::string& masterPassword
+        Botan::secure_vector<char> masterPassword
     );
 } // namespace cryptography
 
