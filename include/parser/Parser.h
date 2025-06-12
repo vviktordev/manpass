@@ -29,7 +29,6 @@ namespace parser {
         void handleShowSubcommand(const std::string& path);
         void handleUpdateSubcommand(const std::string& path);
         void handleDeleteSubcommand(const std::string& path);
-        void handleGenerateSubcommand(const std::string& path);
     };
 }
 

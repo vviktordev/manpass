@@ -16,6 +16,12 @@ namespace vault {
         entries[entryName] = std::move(entry);
     }
 
+    void Folder::deleteEntry(const std::string &entryName) {
+        if (!entryExists(entryName))
+            return;
+        entries.erase(entryName);
+    }
+
     Entry& Folder::getEntry(const std::string& entryName) {
         auto it = entries.find(entryName);
         if (it == entries.end()) {
@@ -50,6 +56,10 @@ namespace vault {
 
     const std::string& Folder::getName() const {
         return folderName;
+    }
+
+    void Folder::setName(std::string name) {
+        folderName = name;
     }
 
     bool Folder::entryExists(const std::string& entryName) const {

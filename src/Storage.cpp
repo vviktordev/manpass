@@ -4,6 +4,7 @@
 
 #include "Storage.h"
 
+#include <iostream>
 #include <utility>
 
 namespace storage {
@@ -17,12 +18,12 @@ namespace storage {
         }
     }
 
-    void Storage::saveVault(const vault::Vault& vault, Botan::secure_vector<char> masterPassword) const {
+    void Storage::saveVault(const vault::Vault& vault, const Botan::secure_vector<char>& masterPassword) const {
         // Encrypt vault data
         json serializedVault = vault;
         cryptography::EncryptedBlob blob = cryptography::encrypt(
             serializedVault.dump(),
-            std::move(masterPassword),
+            masterPassword,
             vault.cryptoAlgorithm,
             vault.cryptoKDF,
             vault.cryptoBase64Salt,
@@ -46,7 +47,10 @@ namespace storage {
         ofs << j.dump(4);
     }
 
-    vault::Vault Storage::loadVault(const std::string &vaultName, Botan::secure_vector<char> masterPassword) const {
+    vault::Vault Storage::loadVault(const std::string& vaultName, const Botan::secure_vector<char>& masterPassword) const {
+        if (!vaultExists(vaultName))
+            throw std::runtime_error("Vault does not exist");
+
         // Read file
         std::filesystem::path filePath = vaultsDir / (vaultName + ".json");
         std::ifstream ifs(filePath);
@@ -66,7 +70,7 @@ namespace storage {
         blob.base64Ciphertext = j["Data"].get<std::string>();
 
         // Decrypt and return
-        std::string stringSerializedVault = cryptography::decrypt(blob, std::move(masterPassword));
+        std::string stringSerializedVault = cryptography::decrypt(blob, masterPassword);
         json serializedVault = json::parse(stringSerializedVault);
 
         vault::Vault vault("");
@@ -79,6 +83,38 @@ namespace storage {
 
         return vault;
     }
+
+    bool Storage::deleteVault(const std::string& vaultName) {
+        std::filesystem::path filePath = vaultsDir / (vaultName + ".json");
+        return std::filesystem::remove(filePath);
+    }
+
+    bool Storage::vaultExists(const std::string& vaultName) const {
+        std::filesystem::path filePath = vaultsDir / (vaultName + ".json");
+        return std::filesystem::exists(filePath);
+    }
+
+    std::vector<std::string> Storage::getAllVaultNames() const {
+        std::vector<std::string> vaultNames;
+
+        for (const auto& entry : std::filesystem::directory_iterator(vaultsDir)) {
+            if (!entry.is_regular_file())
+                continue;
+
+            const std::filesystem::path& filePath = entry.path();
+            if (!filePath.has_extension() || filePath.extension() != ".json")
+                continue;
+
+            std::string vaultName = filePath.stem().string(); // .stem() gets filename without extension
+            if (!vaultName.empty()) {
+                vaultNames.push_back(vaultName);
+            }
+        }
+
+        return vaultNames;
+    }
+
+
 
     fs::path getDefaultVaultsDirectory() {
         fs::path dataDir;

@@ -6,22 +6,24 @@
 #define CONTROLLER_H
 
 #include <iostream>
+#include "parser/Parser.h"
 #include "crypto/Cryptography.h"
 #include "Storage.h"
+#include "Command.h"
 
 using namespace vault;
 using namespace cryptography;
 using namespace storage;
+using namespace parser;
 
 class Controller {
 public:
-    Controller(int parserResults, Storage* storageModule);
+    Controller(std::unique_ptr<CommandArgs> args, Storage& storageModule);
     void run();
 
 private:
-    int parserResults;
-    Storage* storageModule;
-    std::string masterPassword;
+    Storage& storage;
+    std::unique_ptr<Command> command;
 };
 
 

@@ -13,7 +13,7 @@ namespace cryptography {
 
     EncryptedBlob encrypt(
         const std::string &plaintext,
-        Botan::secure_vector<char> masterPassword,
+        const Botan::secure_vector<char>& masterPassword,
         const std::string &algo,
         const std::string &kdf,
         const std::string &base64Salt,
@@ -73,7 +73,7 @@ namespace cryptography {
 
     std::string decrypt(
         EncryptedBlob encrypted,
-        Botan::secure_vector<char> masterPassword
+        const Botan::secure_vector<char>& masterPassword
     ) {
         // Validate algorithm and KDF
         if (std::find(acceptedAlgorithms.begin(), acceptedAlgorithms.end(), encrypted.algorithm) == acceptedAlgorithms.end()) {
@@ -107,12 +107,17 @@ namespace cryptography {
         if (!dec)
             throw std::runtime_error("AEAD algorithm not available");
 
-        dec->set_key(key);
-        dec->start(nonce);
+        Botan::secure_vector<uint8_t> buffer;
+        try {
+            dec->set_key(key);
+            dec->start(nonce);
 
-        // For GCM, ciphertext already contains the authentication tag
-        Botan::secure_vector<uint8_t> buffer = ciphertext;
-        dec->finish(buffer);
+            // For GCM, ciphertext already contains the authentication tag
+            buffer = ciphertext;
+            dec->finish(buffer);
+        } catch (std::exception& e) {
+            throw std::runtime_error("Decryption failed");
+        }
 
         // Convert decrypted data back to string
         return std::string(buffer.begin(), buffer.end());

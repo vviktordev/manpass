@@ -23,11 +23,15 @@ namespace parser {
         ADD_CREDENTIAL,
         ADD_NOTE,
         SHOW,
+        SHOW_VAULT,
+        SHOW_FOLDER,
+        SHOW_ENTRY,
         UPDATE_VAULT,
         UPDATE_FOLDER,
-        UPDATE_CREDENTIAL,
-        UPDATE_NOTE,
-        DELETE,
+        UPDATE_ENTRY,
+        DELETE_VAULT,
+        DELETE_FOLDER,
+        DELETE_ENTRY,
         GENERATE,
     };
 
@@ -66,8 +70,24 @@ namespace parser {
     };
 
     // SHOW COMMANDS
-    // TODO: Not sure how to implement that because (according to the current plan) the ShowCommand object has optional parameters for folder and entry. Will come back to this
-    struct ShowCommandArgs : public CommandArgs {};
+    struct ShowCommandArgs : public CommandArgs {
+        ShowCommandArgs() : CommandArgs(CommandType::SHOW) {}
+    };
+
+    struct ShowVaultCommandArgs : public CommandArgs {
+        ShowVaultCommandArgs() : CommandArgs(CommandType::SHOW_VAULT) {}
+        std::string vault;
+    };
+
+    struct ShowFolderCommandArgs : public CommandArgs {
+        ShowFolderCommandArgs() : CommandArgs(CommandType::SHOW_FOLDER) {}
+        std::string vault, folder;
+    };
+
+    struct ShowEntryCommandArgs : public CommandArgs {
+        ShowEntryCommandArgs() : CommandArgs(CommandType::SHOW_ENTRY) {}
+        std::string vault, folder, entry;
+    };
 
     // UPDATE COMMANDS
     struct UpdateVaultCommandArgs : public CommandArgs {
@@ -81,27 +101,31 @@ namespace parser {
         std::string folder;
     };
 
-    struct UpdateCredentialCommandArgs : public CommandArgs {
-        UpdateCredentialCommandArgs() : CommandArgs(CommandType::UPDATE_CREDENTIAL) {}
+    struct UpdateEntryCommandArgs : public CommandArgs {
+        UpdateEntryCommandArgs() : CommandArgs(CommandType::UPDATE_ENTRY) {}
         std::string vault;
         std::string folder;
-        std::string credential;
-    };
-
-    struct UpdateNoteCommandArgs : public CommandArgs {
-        UpdateNoteCommandArgs() : CommandArgs(CommandType::UPDATE_NOTE) {}
-        std::string vault;
-        std::string folder;
-        std::string note;
+        std::string entry;
     };
 
     // DELETE COMMANDS
-    // TODO: Same as ShowCommandArgs
-    struct DeleteCommandArgs : public CommandArgs {};
+    struct DeleteVaultCommandArgs : public CommandArgs {
+        DeleteVaultCommandArgs() : CommandArgs(CommandType::DELETE_VAULT) {}
+        std::string vault;
+    };
 
-    // GENERATE COMMAND
-    // TODO: Still unsure about the format of this command...
-    struct GenerateCommandArgs : public CommandArgs {};
+    struct DeleteFolderCommandArgs: public CommandArgs {
+        DeleteFolderCommandArgs() : CommandArgs(CommandType::DELETE_FOLDER) {}
+        std::string vault;
+        std::string folder;
+    };
+
+    struct DeleteEntryCommandArgs : public CommandArgs {
+        DeleteEntryCommandArgs() : CommandArgs(CommandType::DELETE_ENTRY) {}
+        std::string vault;
+        std::string folder;
+        std::string entry;
+    };
 }
 
 #endif //COMMANDARGUMENTS_H

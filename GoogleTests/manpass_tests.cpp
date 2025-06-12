@@ -101,6 +101,16 @@ TEST(VaultTest, GetEntryThroughVault) {
     EXPECT_EQ(vault.getEntry("Accounts", "Email").getType(), EntryType::CREDENTIAL);
 }
 
+TEST(VaultTest, AddEntryThroughVault) {
+    Vault vault("MainVault");
+    auto folder = std::make_unique<Folder>("Accounts");
+    vault.addFolder(std::move(folder));
+    EXPECT_EQ(vault.folderExists("Accounts"), true);
+
+    vault.addEntry("Accounts", "Email", std::make_unique<CredentialEntry>("john", "password"));
+    EXPECT_EQ(vault.getEntry("Accounts", "Email").getType(), EntryType::CREDENTIAL);
+}
+
 TEST(VaultTest, FolderAndEntryExistenceChecks) {
     Vault vault("SecureVault");
     EXPECT_FALSE(vault.folderExists("Empty"));

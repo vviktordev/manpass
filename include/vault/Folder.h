@@ -25,6 +25,8 @@ public:
     // Entries are uniquely owned by a Folder, so we use unique_ptr
     void addEntry(std::unique_ptr<Entry> entry, const std::string& entryName);
 
+    void deleteEntry(const std::string& entryName);
+
     // Retrieves an entry by name (mutable and immutable versions)
     Entry& getEntry(const std::string& entryName);
     const Entry& getEntry(const std::string& entryName) const;
@@ -33,6 +35,7 @@ public:
     std::vector<std::string> getEntryNames() const; // Gets names of all entries
 
     const std::string& getName() const; // Return folder name
+    void setName(std::string name);
 
     // Helper to check if entry exists
     bool entryExists(const std::string& entryName) const;

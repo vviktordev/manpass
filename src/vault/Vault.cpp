@@ -26,6 +26,17 @@ namespace vault {
         folders[name] = std::move(folder);
     }
 
+    void Vault::deleteFolder(const std::string &folderName) {
+        if (!folderExists(folderName))
+            return;
+        folders.erase(folderName);
+    }
+
+    void Vault::addEntry(const std::string &folderName, const std::string &entryName, std::unique_ptr<Entry> entry) {
+        this->getFolder(folderName).addEntry(std::move(entry), entryName);
+    }
+
+
     Folder& Vault::getFolder(const std::string& folderName) {
         auto it = folders.find(folderName);
         if (it == folders.end()) {
@@ -70,9 +81,27 @@ namespace vault {
         return vaultName;
     }
 
+    void Vault::setName(std::string name) {
+        this->vaultName = name;
+    }
+
     bool Vault::folderExists(const std::string& folderName) const {
         return folders.find(folderName) != folders.end();
     }
+
+    bool Vault::entryExists(const std::string &folderName, const std::string &entryName) const {
+        return this->getFolder(folderName).entryExists(entryName);
+    }
+
+    void Vault::changeFolderName(const std::string &oldName, const std::string& newName) {
+        Folder& folder = this->getFolder(oldName);
+        folder.setName(newName);
+
+        auto folderNode = folders.extract(oldName);
+        folderNode.key() = newName;
+        folders.insert(std::move(folderNode));
+    }
+
 
     Vault::Vault(Vault && other) noexcept :
     vaultName(std::move(other.vaultName)),

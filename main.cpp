@@ -1,14 +1,35 @@
 #include <iostream>
-#include "json/json.hpp"
-#include "crypto/Cryptography.h"
-
-using json = nlohmann::json;
+#include "Controller.h"
 
 int main(int argc, char** argv) {
-    std::cout<<"Welcome to Manpass"<<std::endl;
-    json j;
-    j["project"] = "Manpass";
-    j["year"] = 2025;
-    std::cout << j.dump(4) << std::endl;
+    std::optional<std::unique_ptr<CommandArgs>> parsedArgs;
+    try {
+        Parser parser(argc, argv);
+        parsedArgs = parser.parse();
+        if (!parsedArgs.has_value()) {
+            std::cout << "Could not parse arguments" << std::endl;
+            return -1;
+        }
+    } catch (std::exception& e) {
+        std::cout << "Parsing error: " << e.what() << std::endl;
+        return -1;
+    }
+
+    fs::path vaultsDir;
+    try {
+        vaultsDir = getDefaultVaultsDirectory();
+    } catch (std::exception& e) {
+        std::cout << e.what() << std::endl;
+        return -1;
+    }
+
+    try {
+        Storage storage(vaultsDir);
+        Controller controller(std::move(parsedArgs.value()), storage);
+
+        controller.run();
+    } catch (std::exception& e) {
+        std::cout << e.what() << std::endl;
+    }
     return 0;
 }

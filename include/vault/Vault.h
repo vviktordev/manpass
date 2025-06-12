@@ -29,6 +29,11 @@ public:
     // Adds a folder to the vault (throws if folder already exists)
     void addFolder(std::unique_ptr<Folder> folderName);
 
+    void deleteFolder(const std::string& folderName);
+
+    // Shorthand for adding an entry to a folder
+    void addEntry(const std::string& folderName, const std::string& entryName, std::unique_ptr<Entry> entry);
+
     // Retrieves a folder by name (mutable and immutable versions)
     Folder& getFolder(const std::string& folderName);
     const Folder& getFolder(const std::string& folderName) const;
@@ -41,9 +46,16 @@ public:
     std::vector<std::string> getFolderNames() const; // Gets names of all folders
 
     const std::string& getName() const; // Returns vault name
+    void setName(std::string name);
 
     // Helper to check if folder exists
     bool folderExists(const std::string& folderName) const;
+
+    // Helper to check if entry exists
+    bool entryExists(const std::string& folderName, const std::string& entryName) const;
+
+    // This has to be done in the Vault object because in addition to just updating the Folder's property, we also need to update the 'folders' unordered map
+    void changeFolderName(const std::string& oldName, const std::string& newName);
 
     // Explicit disallowance of copy operations and allowance for moving operations is required due to unique_ptr use
     // Disable copy operations to enforce unique ownership
